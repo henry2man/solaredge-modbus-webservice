@@ -1,0 +1,31 @@
+{
+  "name": "solaredge-modbus-webservice",
+  "version": "0.0.1",
+  "description": "A simple integration webservice with Solar Edge inverters with Modbus protocol enabled",
+  "main": "monitor.js",
+  "keywords": [
+    "solaredge",
+    "modbus",
+    "modbus-tcp",
+    "solar"
+  ],
+  "author": "Enrique Jesús Cardona Cebrián",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/henry2man/solaredge-modbus-webservice.git"
+  },
+  "dependencies": {
+    "express": "^4.16.4",
+    "prom-client": "^11.3.0",
+    "solaredge-modbus-client": "~1.0.5"
+  },
+  "bugs": {
+    "url": "https://github.com/henry2man/solaredge-modbus-webservice/issues"
+  },
+  "homepage": "https://github.com/henry2man/solaredge-modbus-webservice#readme",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
