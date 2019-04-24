@@ -23,8 +23,6 @@ if (args.length != 4) {
         // 'C_SunSpec_DID', 
         // 'C_Version',
         // 'C_SerialNumber',
-        'I_Status',
-        'I_Status_Vendor',
         // 'I_AC_Current',
         // 'I_AC_Current_SF',
         // 'I_AC_CurrentA',
@@ -44,16 +42,22 @@ if (args.length != 4) {
         // 'I_AC_VAR_SF',
         'I_AC_PF',
         'I_AC_PF_SF',
-        'I_Temp_Sink', 
-        // 'I_Temp_SF'
+        'I_Temp_Sink',
+        'I_Temp_SF',
+        'I_Status',
+        'I_Status_Vendor',
+        'M_AC_Power',
+        'M_AC_Power_SF',
+        'M_Exported',
+        'M_Exported_A',
+        'M_Exported_B',
+        'M_Exported_C',
+        'M_Imported',
+        'M_Imported_A',
+        'M_Imported_B',
+        'M_Imported_C',
+        'M_Energy_W_SF'
     ];
-
-    console.log("Connecting to remote server on " + MODBUS_TCP_HOST + ":" + MODBUS_TCP_PORT + " using modbus TCP");
-
-    let solar = new SolarEdgeModbusClient({
-        host: MODBUS_TCP_HOST,
-        port: MODBUS_TCP_PORT
-    })
 
     // Loading app
     const app = express();
@@ -62,9 +66,17 @@ if (args.length != 4) {
         var urlParsed = url.parse(req.url, true);
         var q = urlParsed.query;
 
-        if (q.apiKey === MONITOR_APIKEY) {
+        if (q.k === MONITOR_APIKEY) {
+
+            let solar = new SolarEdgeModbusClient({
+                host: MODBUS_TCP_HOST,
+                port: MODBUS_TCP_PORT
+            })
+            console.log("Requesting data...");
             solar.getData().then((data) => {
+                console.log("Data is comming!");
                 let outputData = {};
+
                 data.map(result => {
                     // console.log("* Reading: " + result.name );
                     if (RELEVANT_DATA.indexOf(result.name) != -1) {
@@ -72,6 +84,16 @@ if (args.length != 4) {
                         outputData[result.name] = parseResponse(result.value);
                     }
                 })
+
+                // consumption = inverter + meter
+                outputData['H_Consumption_Power'] =
+                    outputData["M_AC_Power"] * Math.pow(10, outputData["M_AC_Power_SF"])
+                    +
+                    outputData["I_AC_Power"] * Math.pow(10, outputData["I_AC_Power_SF"]);
+
+                // Release socket 
+                solar.socket.destroy();
+
                 res.status(200).json(outputData);
             });
         } else {
@@ -80,26 +102,27 @@ if (args.length != 4) {
         }
     });
 
-    const server = app.listen(PORT, () => { 
+    const server = app.listen(PORT, () => {
         //the server object listens on port ${PORT}
         console.log("Server running on port " + PORT);
+        console.log("Connecting to remote server on " + MODBUS_TCP_HOST + ":" + MODBUS_TCP_PORT + " using modbus TCP");
     });
 
     // ***** FIXME Pending Graceful shutdown
 
-    process.on('SIGTERM', () => {
-        console.log("Disconnecting from inverter...");
-        solar.socket.destroy();
-        console.log("Disconnected from inverter");
+    // process.on('SIGTERM', () => {
+    //     console.log("Disconnecting from inverter...");
 
-        server.close((err) => {
-            if (err) {
-                console.error(err)
-                process.exit(1);
-            }
-            process.exit(0);
-        })
-    })
+    //     console.log("Disconnected from inverter");
+
+    //     server.close((err) => {
+    //         if (err) {
+    //             console.error(err)
+    //             process.exit(1);
+    //         }
+    //         process.exit(0);
+    //     })
+    // })
 }
 
 function parseResponse(data) {
