@@ -97,7 +97,7 @@ if (args.length != 4) {
                 res.status(200).json(outputData);
             });
         } else {
-            console.log("FORBIDDEN: Specified apiKey is invalid: '" + q.apiKey + "'");
+            console.log("FORBIDDEN: Specified apiKey is invalid: '" + q.k + "'");
             res.status(403).end();
         }
     });
@@ -107,22 +107,6 @@ if (args.length != 4) {
         console.log("Server running on port " + PORT);
         console.log("Connecting to remote server on " + MODBUS_TCP_HOST + ":" + MODBUS_TCP_PORT + " using modbus TCP");
     });
-
-    // ***** FIXME Pending Graceful shutdown
-
-    // process.on('SIGTERM', () => {
-    //     console.log("Disconnecting from inverter...");
-
-    //     console.log("Disconnected from inverter");
-
-    //     server.close((err) => {
-    //         if (err) {
-    //             console.error(err)
-    //             process.exit(1);
-    //         }
-    //         process.exit(0);
-    //     })
-    // })
 }
 
 function parseResponse(data) {
