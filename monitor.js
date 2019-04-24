@@ -48,14 +48,8 @@ if (args.length != 4) {
         'I_Status_Vendor',
         'M_AC_Power',
         'M_AC_Power_SF',
-        'M_Exported',
         'M_Exported_A',
-        'M_Exported_B',
-        'M_Exported_C',
-        'M_Imported',
         'M_Imported_A',
-        'M_Imported_B',
-        'M_Imported_C',
         'M_Energy_W_SF'
     ];
 
@@ -72,25 +66,29 @@ if (args.length != 4) {
                 host: MODBUS_TCP_HOST,
                 port: MODBUS_TCP_PORT
             })
-            console.log("Requesting data...");
+            // console.log("Requesting data...");
             solar.getData().then((data) => {
-                console.log("Data is comming!");
+                // console.log("Data is comming!");
                 let outputData = {};
 
                 data.map(result => {
                     // console.log("* Reading: " + result.name );
                     if (RELEVANT_DATA.indexOf(result.name) != -1) {
-                        // outputData += "\n\"" + result.name + "\":\"" +  + "\","; //write a response to the client
                         outputData[result.name] = parseResponse(result.value);
                     }
                 })
 
                 // consumption = inverter + meter
-                outputData['H_Consumption_Power'] =
-                    outputData["M_AC_Power"] * Math.pow(10, outputData["M_AC_Power_SF"])
+                outputData['H_Consumption_Power_WH'] =
+                    // + Imported
+                    outputData["M_Imported_A"] * Math.pow(10, outputData["M_Energy_W_SF"])
                     +
-                    outputData["I_AC_Power"] * Math.pow(10, outputData["I_AC_Power_SF"]);
-
+                    // + produced
+                    outputData["I_AC_Energy_WH"] * Math.pow(10, outputData["I_AC_Energy_WH_SF"])
+                    - 
+                    // - exported
+                    outputData["M_Exported_A"] * Math.pow(10, outputData["M_Energy_W_SF"]);
+                    ;
                 // Release socket 
                 solar.socket.destroy();
 
