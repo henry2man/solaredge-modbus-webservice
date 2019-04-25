@@ -48,8 +48,8 @@ if (args.length != 4) {
         'I_Status_Vendor',
         'M_AC_Power',
         'M_AC_Power_SF',
-        'M_Exported_A',
-        'M_Imported_A',
+        'M_Exported',
+        'M_Imported',
         'M_Energy_W_SF'
     ];
 
@@ -79,15 +79,24 @@ if (args.length != 4) {
                 })
 
                 // consumption = inverter + meter
-                outputData['H_Consumption_Power_WH'] =
+                outputData['H_Consumption_Power'] =
                     // + Imported
-                    outputData["M_Imported_A"] * Math.pow(10, outputData["M_Energy_W_SF"])
+                    outputData["M_AC_Power"] * Math.pow(10, outputData["M_AC_Power_SF"])
+                    +
+                    // + produced
+                    outputData["I_AC_Power"] * Math.pow(10, outputData["I_AC_Power_SF"])
+                    ;
+
+                // consumption = inverter + meter
+                outputData['H_Consumption_Lifetime_WH'] =
+                    // + Imported
+                    outputData["M_Imported"] * Math.pow(10, outputData["M_Energy_W_SF"])
                     +
                     // + produced
                     outputData["I_AC_Energy_WH"] * Math.pow(10, outputData["I_AC_Energy_WH_SF"])
                     - 
                     // - exported
-                    outputData["M_Exported_A"] * Math.pow(10, outputData["M_Energy_W_SF"]);
+                    outputData["M_Exported"] * Math.pow(10, outputData["M_Energy_W_SF"]);
                     ;
                 // Release socket 
                 solar.socket.destroy();
