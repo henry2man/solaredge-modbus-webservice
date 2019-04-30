@@ -62,3 +62,4 @@ typings/
 
 # VS Code launch files
 launch.json
+package-lock.json

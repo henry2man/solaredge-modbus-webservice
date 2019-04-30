@@ -1,6 +1,6 @@
 'use strict'
 
-const SolarEdgeModbusClient = require('solaredge-modbus-client')
+const SolarEdgeModbusClient2 = require('solaredge-modbus-client2')
 const url = require('url');
 const express = require('express');
 
@@ -20,37 +20,19 @@ if (args.length != 4) {
 
     // monitoring
     const RELEVANT_DATA = [
-        // 'C_SunSpec_DID', 
-        // 'C_Version',
-        // 'C_SerialNumber',
-        // 'I_AC_Current',
-        // 'I_AC_Current_SF',
-        // 'I_AC_CurrentA',
-        // 'I_AC_CurrentB',
-        // 'I_AC_CurrentC',
-        // 'I_AC_VoltageAB',
-        'I_AC_Power',
-        'I_AC_Power_SF',
-        'I_AC_Energy_WH',
-        'I_AC_Energy_WH_SF',
-        // 'I_DC_Current',
-        // 'I_DC_Voltage',
-        // 'I_DC_Power',
-        // 'I_AC_VA', 
-        // 'I_AC_VA_SF', 
-        // 'I_AC_VAR', 
-        // 'I_AC_VAR_SF',
-        // 'I_AC_PF',
-        // 'I_AC_PF_SF',
-        'I_Temp_Sink',
-        'I_Temp_SF',
-        'I_Status',
-        'I_Status_Vendor',
-        'M_AC_Power',
-        'M_AC_Power_SF',
-        'M_Exported',
-        'M_Imported',
-        'M_Energy_W_SF'
+        'INV_I_AC_Power',
+        'INV_I_AC_Power_SF',
+        'INV_I_AC_Energy_WH',
+        'INV_I_AC_Energy_WH_SF',
+        'INV_I_Temp_Sink',
+        'INV_I_Temp_SF',
+        'INV_I_Status',
+        'INV_I_Status_Vendor',
+        'MET_M_AC_Power',
+        'MET_M_AC_Power_SF',
+        'MET_M_Exported',
+        'MET_M_Imported',
+        'MET_M_Energy_W_SF'
     ];
 
     // Loading app
@@ -62,42 +44,40 @@ if (args.length != 4) {
 
         if (q.k === MONITOR_APIKEY) {
 
-            let solar = new SolarEdgeModbusClient({
+            let solar = new SolarEdgeModbusClient2({
                 host: MODBUS_TCP_HOST,
                 port: MODBUS_TCP_PORT
             })
             // console.log("Requesting data...");
-            solar.getData().then((data) => {
+            solar.getData(RELEVANT_DATA).then((data) => {
                 // console.log("Data is comming!");
                 let outputData = {};
 
                 data.map(result => {
                     // console.log("* Reading: " + result.name );
-                    if (RELEVANT_DATA.indexOf(result.name) != -1) {
-                        outputData[result.name] = parseResponse(result.value);
-                    }
+                    outputData[result.name] = parseResponse(result.value);
                 })
 
                 // consumption = inverter + meter
                 outputData['H_Consumption_Power'] =
                     // + Imported
-                    outputData["M_AC_Power"] * Math.pow(10, outputData["M_AC_Power_SF"])
+                    outputData["MET_M_AC_Power"] * Math.pow(10, outputData["MET_M_AC_Power_SF"])
                     +
                     // + produced
-                    outputData["I_AC_Power"] * Math.pow(10, outputData["I_AC_Power_SF"])
+                    outputData["INV_I_AC_Power"] * Math.pow(10, outputData["INV_I_AC_Power_SF"])
                     ;
 
                 // consumption = inverter + meter
                 outputData['H_Consumption_Lifetime_WH'] =
                     // + Imported
-                    outputData["M_Imported"] * Math.pow(10, outputData["M_Energy_W_SF"])
+                    outputData["MET_M_Imported"] * Math.pow(10, outputData["MET_M_Energy_W_SF"])
                     +
                     // + produced
-                    outputData["I_AC_Energy_WH"] * Math.pow(10, outputData["I_AC_Energy_WH_SF"])
-                    - 
+                    outputData["INV_I_AC_Energy_WH"] * Math.pow(10, outputData["INV_I_AC_Energy_WH_SF"])
+                    -
                     // - exported
-                    outputData["M_Exported"] * Math.pow(10, outputData["M_Energy_W_SF"]);
-                    ;
+                    outputData["MET_M_Exported"] * Math.pow(10, outputData["MET_M_Energy_W_SF"]);
+                ;
                 // Release socket 
                 solar.socket.destroy();
 
@@ -118,5 +98,5 @@ if (args.length != 4) {
 
 function parseResponse(data) {
     // Parses null bytes from response
-    return data.replace(/\0/g, '');
+    return data!== null ? data.replace(/\0/g, '') : null;
 }
