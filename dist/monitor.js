@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const SolarEdgeModbusClient2 = require("solaredge-modbus-client2");
 const express_1 = __importDefault(require("express"));
+const express_ws_1 = __importDefault(require("express-ws"));
 const url_1 = __importDefault(require("url"));
 const winston_1 = __importDefault(require("winston"));
 const consoleTransport = new winston_1.default.transports.Console();
@@ -45,6 +46,7 @@ const INFO_DATA = [
     "MET_C_Version",
     "MET_C_SerialNumber",
 ];
+const WS_PING_INTERVAL = 10000;
 const args = process.argv.slice(2);
 if (args.length !== 3) {
     logger.error("Invalid number of arguments. Usage: \n" +
@@ -58,6 +60,7 @@ const MONITOR_TCP_PORT = args[2];
 logger.debug("Connecting to remote server on " + MONITOR_TCP_HOST
     + ":" + MONITOR_TCP_PORT + " using modbus TCP");
 const app = express_1.default();
+const expressWsApp = express_ws_1.default(app);
 function logRequest(req, res, next) {
     logger.debug(req.url);
     next();
@@ -72,18 +75,14 @@ const ERROR_CODE_FORBIDDEN = "403";
 const ERROR_CODE_INTERNAL_SERVER_ERROR = "500";
 app.get("/data", (req, res) => __awaiter(this, void 0, void 0, function* () {
     try {
-        res.status(200).json(yield dataHandler(req, MONITOR_API_KEY, RELEVANT_DATA).catch((error) => {
-            throw Error(error);
-        }));
+        res.status(200).json(yield dataHandler(req, MONITOR_API_KEY, RELEVANT_DATA));
     }
     catch (error) {
         processError(req, res, error);
     }
 })).get("/info", (req, res) => __awaiter(this, void 0, void 0, function* () {
     try {
-        res.status(200).json(yield infoHandler(req, MONITOR_API_KEY, INFO_DATA).catch((error) => {
-            throw Error(error);
-        }));
+        res.status(200).json(yield infoHandler(req, MONITOR_API_KEY, INFO_DATA));
     }
     catch (error) {
         processError(req, res, error);

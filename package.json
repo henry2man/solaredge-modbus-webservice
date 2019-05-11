@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "express": "^4.16.4",
+    "express-ws": "^4.0.0",
     "prom-client": "^11.3.0",
     "solaredge-modbus-client2": "file:local_modules/solaredge-modbus-client2",
     "winston": "^3.2.1"
@@ -27,7 +28,9 @@
   "homepage": "https://github.com/henry2man/solaredge-modbus-webservice#readme",
   "devDependencies": {
     "@types/express": "^4.16.1",
+    "@types/express-ws": "^3.0.0",
     "@types/node": "^12.0.0",
+    "@types/ws": "^6.0.1",
     "ts-node": "^8.1.0",
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"

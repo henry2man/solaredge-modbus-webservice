@@ -3,6 +3,7 @@
 // tslint:disable-next-line: no-var-requires
 const SolarEdgeModbusClient2 = require("solaredge-modbus-client2");
 import express, { Request, Response } from "express";
+import expressWs from "express-ws";
 import url from "url";
 import winston, { Logger } from "winston";
 
@@ -43,6 +44,9 @@ const INFO_DATA = [
     "MET_C_SerialNumber",
 ];
 
+// Websocket ping interval
+const WS_PING_INTERVAL = 10000;
+
 // get parameters
 const args = process.argv.slice(2);
 
@@ -61,7 +65,8 @@ logger.debug("Connecting to remote server on " + MONITOR_TCP_HOST
     + ":" + MONITOR_TCP_PORT + " using modbus TCP");
 
 // Loading app
-const app = express();
+// const app = express();
+const app = expressWs(express()).app;
 
 function logRequest(req: Request, res: Response, next: () => void) {
     logger.debug(req.url);
@@ -80,20 +85,22 @@ app.use(logError);
 
 const ERROR_CODE_FORBIDDEN = "403";
 const ERROR_CODE_INTERNAL_SERVER_ERROR = "500";
+/*
+app.ws("/", (ws, res) => {
+    ws.onopen('event') {
+
+    }
+})*/
 
 app.get("/data", async (req, res) => {
     try {
-        res.status(200).json(await dataHandler(req, MONITOR_API_KEY, RELEVANT_DATA).catch((error) => {
-            throw Error(error);
-        }));
+        res.status(200).json(await dataHandler(req, MONITOR_API_KEY, RELEVANT_DATA));
     } catch (error) {
         processError(req, res, error);
     }
 }).get("/info", async (req, res) => {
     try {
-        res.status(200).json(await infoHandler(req, MONITOR_API_KEY, INFO_DATA).catch((error) => {
-            throw Error(error);
-        }));
+        res.status(200).json(await infoHandler(req, MONITOR_API_KEY, INFO_DATA));
     } catch (error) {
         processError(req, res, error);
     }
