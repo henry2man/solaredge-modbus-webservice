@@ -2,7 +2,7 @@
   "name": "solaredge-modbus-webservice",
   "version": "0.0.1",
   "description": "A simple integration webservice with Solar Edge inverters with Modbus protocol enabled",
-  "main": "monitor.js",
+  "main": "dist/monitor.js",
   "keywords": [
     "solaredge",
     "modbus",
@@ -18,14 +18,26 @@
   "dependencies": {
     "express": "^4.16.4",
     "prom-client": "^11.3.0",
-    "solaredge-modbus-client2": "file:local_modules/solaredge-modbus-client2"
+    "solaredge-modbus-client2": "file:local_modules/solaredge-modbus-client2",
+    "winston": "^3.2.1"
   },
   "bugs": {
     "url": "https://github.com/henry2man/solaredge-modbus-webservice/issues"
   },
   "homepage": "https://github.com/henry2man/solaredge-modbus-webservice#readme",
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/express": "^4.16.1",
+    "@types/node": "^12.0.0",
+    "ts-node": "^8.1.0",
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.5"
+  },
   "scripts": {
+    "prebuild": "tslint -c tslint.json -p tsconfig.json",
+    "build": "tsc",
+    "prestart": "npm run build",
+    "dev": "ts-node-dev --respawn --transpileOnly ./src/monitor.ts",
+    "prod": "tsc && node ./dist/monitor.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
