@@ -3,7 +3,6 @@
 // tslint:disable-next-line: no-var-requires
 const SolarEdgeModbusClient2 = require("solaredge-modbus-client2");
 import express, { Request, Response } from "express";
-import expressWs from "express-ws";
 import url from "url";
 import winston, { Logger } from "winston";
 
@@ -44,9 +43,6 @@ const INFO_DATA = [
     "MET_C_SerialNumber",
 ];
 
-// Websocket ping interval
-const WS_PING_INTERVAL = 10000;
-
 // get parameters
 const args = process.argv.slice(2);
 
@@ -56,7 +52,7 @@ if (args.length !== 3) {
     process.exit(1);
 }
 // get run configuration
-const MONITOR_PORT = process.env.PORT || 8080;
+const MONITOR_PORT = process.env.PORT || 8081;
 const MONITOR_API_KEY = args[0];
 const MONITOR_TCP_HOST = args[1];
 const MONITOR_TCP_PORT = args[2];
@@ -65,32 +61,33 @@ logger.debug("Connecting to remote server on " + MONITOR_TCP_HOST
     + ":" + MONITOR_TCP_PORT + " using modbus TCP");
 
 // Loading app
-// const app = express();
-const app = expressWs(express()).app;
-
-function logRequest(req: Request, res: Response, next: () => void) {
-    logger.debug(req.url);
-    next();
-}
-
-function logError(error: string, req: Request, res: Response, next: () => void) {
-    logger.error(error);
-    next();
-}
+const app = express();
 
 // loging urls
-app.use(logRequest);
+app.use(
+    (req: Request, res: Response, next: () => void) => {
+        logger.debug(req.url);
+        next();
+    }
+);
 // logging errors
-app.use(logError);
+app.use((error: string, req: Request, res: Response, next: () => void) => {
+    logger.error(error);
+    next();
+});
+// Cors
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers",
+        // tslint:disable-next-line: max-line-length
+        "Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+    res.header("Allow", "GET, POST, OPTIONS, PUT, DELETE");
+    next();
+});
 
 const ERROR_CODE_FORBIDDEN = "403";
 const ERROR_CODE_INTERNAL_SERVER_ERROR = "500";
-/*
-app.ws("/", (ws, res) => {
-    ws.onopen('event') {
-
-    }
-})*/
 
 app.get("/data", async (req, res) => {
     try {
@@ -175,19 +172,26 @@ async function dataHandler(req: Request, apiKey: string, dataToRead: string[]): 
                 const o: { [s: string]: any } = {};
 
                 // Production
-                o.Production_AC_Power_Net_WH = results.INV_I_AC_Power * Math.pow(10, results.INV_I_AC_Power_SF);
+                o.Production_AC_Power_Net_WH = parseFloat(((
+                    results.INV_I_AC_Power
+                    * Math.pow(10, results.INV_I_AC_Power_SF) * 100) / 100).toFixed(0));
 
                 // Lifetime Production
                 o.Production_AC_Power_Lifetime_WH =
                     results.INV_I_AC_Energy_WH * Math.pow(10, results.INV_I_AC_Energy_WH_SF);
 
+                // External Consumption
+                o.Consumption_AC_Power_Meter =
+                    // + Imported
+                    parseFloat(((results.MET_M_AC_Power
+                        * Math.pow(10, results.MET_M_AC_Power_SF) * 100) / 100).toFixed(0))
+                    ;
+
                 // consumption = inverter + meter
                 o.Consumption_AC_Power_Net_WH =
-                    // + Imported
-                    results.MET_M_AC_Power * Math.pow(10, results.MET_M_AC_Power_SF)
-                    +
+                    o.Consumption_AC_Power_Meter -
                     // + produced
-                    results.INV_I_AC_Power * Math.pow(10, results.INV_I_AC_Power_SF);
+                    o.Production_AC_Power_Net_WH;
 
                 // lifetime consumption = imported + produced - exported
                 o.Consumption_AC_Power_Lifetime_WH =

@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const SolarEdgeModbusClient2 = require("solaredge-modbus-client2");
 const express_1 = __importDefault(require("express"));
-const express_ws_1 = __importDefault(require("express-ws"));
 const url_1 = __importDefault(require("url"));
 const winston_1 = __importDefault(require("winston"));
 const consoleTransport = new winston_1.default.transports.Console();
@@ -46,31 +45,34 @@ const INFO_DATA = [
     "MET_C_Version",
     "MET_C_SerialNumber",
 ];
-const WS_PING_INTERVAL = 10000;
 const args = process.argv.slice(2);
 if (args.length !== 3) {
     logger.error("Invalid number of arguments. Usage: \n" +
         "node monitor.js <MONITOR_APIKEY> <MODBUS_TCP_HOST> <MODBUS_TCP_PORT>");
     process.exit(1);
 }
-const MONITOR_PORT = process.env.PORT || 8080;
+const MONITOR_PORT = process.env.PORT || 8081;
 const MONITOR_API_KEY = args[0];
 const MONITOR_TCP_HOST = args[1];
 const MONITOR_TCP_PORT = args[2];
 logger.debug("Connecting to remote server on " + MONITOR_TCP_HOST
     + ":" + MONITOR_TCP_PORT + " using modbus TCP");
 const app = express_1.default();
-const expressWsApp = express_ws_1.default(app);
-function logRequest(req, res, next) {
+app.use((req, res, next) => {
     logger.debug(req.url);
     next();
-}
-function logError(error, req, res, next) {
+});
+app.use((error, req, res, next) => {
     logger.error(error);
     next();
-}
-app.use(logRequest);
-app.use(logError);
+});
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+    res.header("Allow", "GET, POST, OPTIONS, PUT, DELETE");
+    next();
+});
 const ERROR_CODE_FORBIDDEN = "403";
 const ERROR_CODE_INTERNAL_SERVER_ERROR = "500";
 app.get("/data", (req, res) => __awaiter(this, void 0, void 0, function* () {
@@ -132,13 +134,16 @@ function dataHandler(req, apiKey, dataToRead) {
                 return Number(cleanNullChars(input));
             }).then((results) => {
                 const o = {};
-                o.Production_AC_Power_Net_WH = results.INV_I_AC_Power * Math.pow(10, results.INV_I_AC_Power_SF);
+                o.Production_AC_Power_Net_WH = parseFloat(((results.INV_I_AC_Power
+                    * Math.pow(10, results.INV_I_AC_Power_SF) * 100) / 100).toFixed(0));
                 o.Production_AC_Power_Lifetime_WH =
                     results.INV_I_AC_Energy_WH * Math.pow(10, results.INV_I_AC_Energy_WH_SF);
+                o.Consumption_AC_Power_Meter =
+                    parseFloat(((results.MET_M_AC_Power
+                        * Math.pow(10, results.MET_M_AC_Power_SF) * 100) / 100).toFixed(0));
                 o.Consumption_AC_Power_Net_WH =
-                    results.MET_M_AC_Power * Math.pow(10, results.MET_M_AC_Power_SF)
-                        +
-                            results.INV_I_AC_Power * Math.pow(10, results.INV_I_AC_Power_SF);
+                    o.Consumption_AC_Power_Meter -
+                        o.Production_AC_Power_Net_WH;
                 o.Consumption_AC_Power_Lifetime_WH =
                     results.MET_M_Imported * Math.pow(10, results.MET_M_Energy_W_SF)
                         +
