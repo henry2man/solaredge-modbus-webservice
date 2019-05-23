@@ -43,19 +43,12 @@ const INFO_DATA = [
     "MET_C_SerialNumber",
 ];
 
-// get parameters
-const args = process.argv.slice(2);
-
-if (args.length !== 3) {
-    logger.error("Invalid number of arguments. Usage: \n" +
-        "node monitor.js <MONITOR_APIKEY> <MODBUS_TCP_HOST> <MODBUS_TCP_PORT>");
-    process.exit(1);
-}
 // get run configuration
-const MONITOR_PORT = process.env.PORT || 8081;
-const MONITOR_API_KEY = args[0];
-const MONITOR_TCP_HOST = args[1];
-const MONITOR_TCP_PORT = args[2];
+const MONITOR_PORT = process.env.PORT !== undefined ? parseInt(process.env.PORT, 0) : 8080;
+const MONITOR_HOST = process.env.HOST || "0.0.0.0";
+const MONITOR_API_KEY = process.env.API_KEY || "";
+const MONITOR_TCP_HOST = process.env.TCP_HOST || "";
+const MONITOR_TCP_PORT = process.env.TCP_PORT || "502";
 
 logger.debug("Connecting to remote server on " + MONITOR_TCP_HOST
     + ":" + MONITOR_TCP_PORT + " using modbus TCP");
@@ -81,8 +74,8 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Headers",
         // tslint:disable-next-line: max-line-length
         "Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method");
-    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
-    res.header("Allow", "GET, POST, OPTIONS, PUT, DELETE");
+    res.header("Access-Control-Allow-Methods", "GET");
+    res.header("Allow", "GET");
     next();
 });
 
@@ -103,7 +96,7 @@ app.get("/data", async (req, res) => {
     }
 });
 
-const server = app.listen(MONITOR_PORT, () => {
+const server = app.listen(MONITOR_PORT, MONITOR_HOST, () => {
     // the server object listens on port ${PORT}
     logger.info("Server running on port " + MONITOR_PORT);
 });
@@ -242,3 +235,4 @@ function cleanNullChars(data: string): string {
     // Parses null bytes from response
     return data !== null ? data.replace(/\0/g, "") : "";
 }
+
