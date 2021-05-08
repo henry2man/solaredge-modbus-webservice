@@ -21,7 +21,7 @@
     "prom-client": "^11.3.0",
     "solaredge-modbus-client2": "file:local_modules/solaredge-modbus-client2",
     "winston": "^3.2.1",
-    "lodash": ">=4.17.13"
+    "lodash": ">=4.17.21"
   },
   "bugs": {
     "url": "https://github.com/henry2man/solaredge-modbus-webservice/issues"
