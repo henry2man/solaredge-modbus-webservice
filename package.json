@@ -1,6 +1,6 @@
 {
   "name": "solaredge-modbus-webservice",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A simple integration webservice with Solar Edge inverters with Modbus protocol enabled",
   "main": "dist/monitor.js",
   "keywords": [

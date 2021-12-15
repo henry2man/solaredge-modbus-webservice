@@ -143,7 +143,8 @@ async function readRegisters(registersToBeRead: string[], parseDataFn: (input: s
         });
         return outputData;
     } catch (error) {
-        throw new Error(error);
+        logger.error(error);
+        return { 'error': error };
     }
 }
 /**
