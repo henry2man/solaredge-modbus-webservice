@@ -208,7 +208,9 @@ async function dataHandler(req: Request, apiKey: string, dataToRead: string[]): 
 
                 return o;
             }).catch((error) => {
-                throw Error(error);
+                // throw Error(error);
+                logger.error(error);
+                return { 'error': error };
             });
     } else {
         throw Error(ERROR_CODE_FORBIDDEN);
