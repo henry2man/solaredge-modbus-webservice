@@ -5,6 +5,12 @@ const SolarEdgeModbusClient2 = require("solaredge-modbus-client2");
 import express, { Request, Response } from "express";
 import url from "url";
 import winston, { Logger } from "winston";
+import process from 'process';
+
+process.on('uncaughtException', err => {
+    console.error('There was an uncaught error', err.message)
+})
+
 
 const consoleTransport = new winston.transports.Console();
 
@@ -102,7 +108,7 @@ const server = app.listen(MONITOR_PORT, MONITOR_HOST, () => {
 });
 
 function processError(req: Request, res: Response, error: any) {
-    logger.debug(error);
+    // logger.error(error);
     if (error.message === ERROR_CODE_FORBIDDEN) {
         logger.warn(`Forbidden request: ${req.url}`);
         res.status(403).send({ errorCode: ERROR_CODE_FORBIDDEN, errorMessage: "Forbidden" });
@@ -121,31 +127,26 @@ function processError(req: Request, res: Response, error: any) {
 async function readRegisters(registersToBeRead: string[], parseDataFn: (input: string) => string | number)
     : Promise<{ [s: string]: any }> {
 
-    try {
-        // Acquire connection...
-        const solar = new SolarEdgeModbusClient2({
-            host: MONITOR_TCP_HOST,
-            port: MONITOR_TCP_PORT
-        });
+    // Acquire connection...
+    const solar = new SolarEdgeModbusClient2({
+        host: MONITOR_TCP_HOST,
+        port: MONITOR_TCP_PORT
+    });
 
-        logger.debug("Requesting data...");
-        const data = await solar.getData(registersToBeRead);
+    logger.debug("Requesting data...");
+    const data = await solar.getData(registersToBeRead);
 
-        // Release socket
-        solar.socket.destroy();
+    // Release socket
+    solar.socket.destroy();
 
-        logger.debug("Winter is comming!");
-        const outputData: { [s: string]: string | number; } = {};
+    logger.debug("Winter is comming!");
+    const outputData: { [s: string]: string | number; } = {};
 
-        data.map((result: { name: string, value: string }) => {
-            logger.debug("* Reading: " + result.name);
-            outputData[result.name] = parseDataFn(result.value);
-        });
-        return outputData;
-    } catch (error) {
-        logger.error(error);
-        return { 'error': error };
-    }
+    data.map((result: { name: string, value: string }) => {
+        logger.debug("* Reading: " + result.name);
+        outputData[result.name] = parseDataFn(result.value);
+    });
+    return outputData;
 }
 /**
  * @param  {Request} req
@@ -207,10 +208,6 @@ async function dataHandler(req: Request, apiKey: string, dataToRead: string[]): 
                 o.Inverter_Status_Vendor_N = results.INV_I_Status_Vendor;
 
                 return o;
-            }).catch((error) => {
-                // throw Error(error);
-                logger.error(error);
-                return { 'error': error };
             });
     } else {
         throw Error(ERROR_CODE_FORBIDDEN);
@@ -238,4 +235,3 @@ function cleanNullChars(data: string): string {
     // Parses null bytes from response
     return data !== null ? data.replace(/\0/g, "") : "";
 }
-
