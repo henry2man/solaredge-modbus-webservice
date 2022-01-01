@@ -62,6 +62,17 @@ logger.debug("Connecting to remote server on " + MONITOR_TCP_HOST
 // Loading app
 const app = express();
 
+let lastOkData: {
+    [s: string]:
+    // tslint:disable-next-line: no-var-requires
+    any;
+};
+let lastOkInfo: {
+    [s: string]:
+    // tslint:disable-next-line: no-var-requires
+    any;
+};
+
 // loging urls
 app.use(
     (req: Request, res: Response, next: () => void) => {
@@ -90,15 +101,17 @@ const ERROR_CODE_INTERNAL_SERVER_ERROR = "500";
 
 app.get("/data", async (req, res) => {
     try {
-        res.status(200).json(await dataHandler(req, MONITOR_API_KEY, RELEVANT_DATA));
+        lastOkData = await dataHandler(req, MONITOR_API_KEY, RELEVANT_DATA);
+        res.status(200).json(lastOkData);
     } catch (error) {
-        processError(req, res, error);
+        processError(req, res, error, true);
     }
 }).get("/info", async (req, res) => {
     try {
-        res.status(200).json(await infoHandler(req, MONITOR_API_KEY, INFO_DATA));
+        lastOkInfo = await infoHandler(req, MONITOR_API_KEY, INFO_DATA);
+        res.status(200).json(lastOkInfo);
     } catch (error) {
-        processError(req, res, error);
+        processError(req, res, error, false);
     }
 });
 
@@ -107,14 +120,16 @@ const server = app.listen(MONITOR_PORT, MONITOR_HOST, () => {
     logger.info("Server running on port " + MONITOR_PORT);
 });
 
-function processError(req: Request, res: Response, error: any) {
+function processError(req: Request, res: Response, error: any, data: boolean) {
     // logger.error(error);
     if (error.message === ERROR_CODE_FORBIDDEN) {
         logger.warn(`Forbidden request: ${req.url}`);
         res.status(403).send({ errorCode: ERROR_CODE_FORBIDDEN, errorMessage: "Forbidden" });
     } else {
-        logger.error(`Internal error. Request: ${req.url}`);
-        res.status(500).send({ errorCode: ERROR_CODE_INTERNAL_SERVER_ERROR, errorMessage: "Internal Server Error" });
+        // Return last valid info
+        logger.warn(`Internal error. Request: ${req.url}`);
+        // res.status(500).send({ errorCode: ERROR_CODE_INTERNAL_SERVER_ERROR, errorMessage: "Internal Server Error" });
+        res.status(200).json(data ? lastOkData : lastOkInfo);
     }
 }
 
