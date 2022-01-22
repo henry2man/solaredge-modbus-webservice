@@ -20,7 +20,7 @@
     "express-ws": "^4.0.0",
     "prom-client": "^11.3.0",
     "solaredge-modbus-client2": "file:local_modules/solaredge-modbus-client2",
-    "winston": "^3.2.1",
+    "winston": "^3.4.0",
     "lodash": ">=4.17.21"
   },
   "bugs": {

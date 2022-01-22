@@ -11,7 +11,6 @@ process.on('uncaughtException', err => {
     console.error('There was an uncaught error', err.message)
 })
 
-
 const consoleTransport = new winston.transports.Console();
 
 const myWinstonOptions = {
@@ -55,23 +54,13 @@ const MONITOR_HOST = process.env.HOST || "0.0.0.0";
 const MONITOR_API_KEY = process.env.API_KEY || "";
 const MONITOR_TCP_HOST = process.env.TCP_HOST || "";
 const MONITOR_TCP_PORT = process.env.TCP_PORT || "502";
+const CONNECT_TIMEOUT = Number(process.env.CONNECT_TIMEOUT) || 2000;
 
 logger.debug("Connecting to remote server on " + MONITOR_TCP_HOST
     + ":" + MONITOR_TCP_PORT + " using modbus TCP");
 
 // Loading app
 const app = express();
-
-let lastOkData: {
-    [s: string]:
-    // tslint:disable-next-line: no-var-requires
-    any;
-};
-let lastOkInfo: {
-    [s: string]:
-    // tslint:disable-next-line: no-var-requires
-    any;
-};
 
 // loging urls
 app.use(
@@ -101,17 +90,17 @@ const ERROR_CODE_INTERNAL_SERVER_ERROR = "500";
 
 app.get("/data", async (req, res) => {
     try {
-        lastOkData = await dataHandler(req, MONITOR_API_KEY, RELEVANT_DATA);
-        res.status(200).json(lastOkData);
+        let data = await dataHandler(req, MONITOR_API_KEY, RELEVANT_DATA);
+        res.status(200).json(data);
     } catch (error) {
-        processError(req, res, error, true);
+        processError(req, res, error);
     }
 }).get("/info", async (req, res) => {
     try {
-        lastOkInfo = await infoHandler(req, MONITOR_API_KEY, INFO_DATA);
-        res.status(200).json(lastOkInfo);
+        let infoData = await infoHandler(req, MONITOR_API_KEY, INFO_DATA);
+        res.status(200).json(infoData);
     } catch (error) {
-        processError(req, res, error, false);
+        processError(req, res, error);
     }
 });
 
@@ -120,16 +109,14 @@ const server = app.listen(MONITOR_PORT, MONITOR_HOST, () => {
     logger.info("Server running on port " + MONITOR_PORT);
 });
 
-function processError(req: Request, res: Response, error: any, data: boolean) {
-    // logger.error(error);
+function processError(req: Request, res: Response, error: any) {
+    logger.warn(error);
     if (error.message === ERROR_CODE_FORBIDDEN) {
         logger.warn(`Forbidden request: ${req.url}`);
         res.status(403).send({ errorCode: ERROR_CODE_FORBIDDEN, errorMessage: "Forbidden" });
     } else {
-        // Return last valid info
-        logger.warn(`Internal error. Request: ${req.url}`);
-        // res.status(500).send({ errorCode: ERROR_CODE_INTERNAL_SERVER_ERROR, errorMessage: "Internal Server Error" });
-        res.status(200).json(data ? lastOkData : lastOkInfo);
+        logger.error(`Internal error: ${error}, Request: ${req.url}`);
+        res.status(500).send({ errorCode: ERROR_CODE_INTERNAL_SERVER_ERROR, errorMessage: "Internal Server Error" });
     }
 }
 
@@ -149,12 +136,21 @@ async function readRegisters(registersToBeRead: string[], parseDataFn: (input: s
     });
 
     logger.debug("Requesting data...");
-    const data = await solar.getData(registersToBeRead);
+
+    var promiseTimeout = new Promise(function (fulfill, reject) {
+        // Rejects as soon as the timeout kicks in
+        setTimeout(() => {
+            reject({ 'error': 'timeout exceded' });
+        }
+            , CONNECT_TIMEOUT);
+    });
+
+    const data = await Promise.race([promiseTimeout, solar.getData(registersToBeRead)]);
 
     // Release socket
     solar.socket.destroy();
 
-    logger.debug("Winter is comming!");
+    logger.debug("Socket closed!");
     const outputData: { [s: string]: string | number; } = {};
 
     data.map((result: { name: string, value: string }) => {
@@ -163,6 +159,7 @@ async function readRegisters(registersToBeRead: string[], parseDataFn: (input: s
     });
     return outputData;
 }
+
 /**
  * @param  {Request} req
  * @param  {string} apiKey
@@ -223,6 +220,8 @@ async function dataHandler(req: Request, apiKey: string, dataToRead: string[]): 
                 o.Inverter_Status_Vendor_N = results.INV_I_Status_Vendor;
 
                 return o;
+            }).catch((error) => {
+                throw Error(error);
             });
     } else {
         throw Error(ERROR_CODE_FORBIDDEN);
