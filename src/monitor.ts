@@ -23,17 +23,17 @@ const logger: Logger = winston.createLogger(myWinstonOptions);
 const RELEVANT_DATA = [
     "INV_I_AC_Power",
     "INV_I_AC_Power_SF",
-    "INV_I_AC_Energy_WH",
-    "INV_I_AC_Energy_WH_SF",
+    //"INV_I_AC_Energy_WH",
+    //"INV_I_AC_Energy_WH_SF",
     "INV_I_Temp_Sink",
     "INV_I_Temp_SF",
     "INV_I_Status",
-    "INV_I_Status_Vendor",
+    //"INV_I_Status_Vendor",
     "MET_M_AC_Power",
     "MET_M_AC_Power_SF",
-    "MET_M_Exported",
-    "MET_M_Imported",
-    "MET_M_Energy_W_SF"
+    //"MET_M_Exported",
+    //"MET_M_Imported",
+    // "MET_M_Energy_W_SF"
 ];
 
 // info data
@@ -183,8 +183,8 @@ async function dataHandler(req: Request, apiKey: string, dataToRead: string[]): 
                     * Math.pow(10, results.INV_I_AC_Power_SF) * 100) / 100).toFixed(0));
 
                 // Lifetime Production
-                o.Production_AC_Power_Lifetime_WH =
-                    results.INV_I_AC_Energy_WH * Math.pow(10, results.INV_I_AC_Energy_WH_SF);
+                //o.Production_AC_Power_Lifetime_WH =
+                //   results.INV_I_AC_Energy_WH * Math.pow(10, results.INV_I_AC_Energy_WH_SF);
 
                 // External Consumption
                 o.Consumption_AC_Power_Meter =
@@ -200,7 +200,7 @@ async function dataHandler(req: Request, apiKey: string, dataToRead: string[]): 
                     o.Production_AC_Power_Net_WH;
 
                 // lifetime consumption = imported + produced - exported
-                o.Consumption_AC_Power_Lifetime_WH =
+                /*o.Consumption_AC_Power_Lifetime_WH =
                     // + Imported
                     results.MET_M_Imported * Math.pow(10, results.MET_M_Energy_W_SF)
                     +
@@ -208,7 +208,7 @@ async function dataHandler(req: Request, apiKey: string, dataToRead: string[]): 
                     results.INV_I_AC_Energy_WH * Math.pow(10, results.INV_I_AC_Energy_WH_SF)
                     // - exported
                     - results.MET_M_Exported * Math.pow(10, results.MET_M_Energy_W_SF);
-
+                */
                 // Temperature (fixed 2 decimals)
                 o.Temperature_C =
                     parseFloat(((results.INV_I_Temp_Sink
@@ -216,7 +216,7 @@ async function dataHandler(req: Request, apiKey: string, dataToRead: string[]): 
 
                 // Inverter Status
                 o.Inverter_Status_N = results.INV_I_Status;
-                o.Inverter_Status_Vendor_N = results.INV_I_Status_Vendor;
+                // o.Inverter_Status_Vendor_N = results.INV_I_Status_Vendor;
 
                 return o;
             }).catch((error) => {
