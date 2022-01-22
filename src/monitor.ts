@@ -110,12 +110,11 @@ const server = app.listen(MONITOR_PORT, MONITOR_HOST, () => {
 });
 
 function processError(req: Request, res: Response, error: any) {
-    logger.warn(error);
     if (error.message === ERROR_CODE_FORBIDDEN) {
         logger.warn(`Forbidden request: ${req.url}`);
         res.status(403).send({ errorCode: ERROR_CODE_FORBIDDEN, errorMessage: "Forbidden" });
     } else {
-        logger.error(`Internal error: ${error}, Request: ${req.url}`);
+        logger.error(`Internal error: ${error.message}, Request: ${req.url}`);
         res.status(500).send({ errorCode: ERROR_CODE_INTERNAL_SERVER_ERROR, errorMessage: "Internal Server Error" });
     }
 }
