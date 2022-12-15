@@ -16,7 +16,7 @@
     "url": "git+https://github.com/henry2man/solaredge-modbus-webservice.git"
   },
   "dependencies": {
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "express-ws": "^4.0.0",
     "prom-client": "^11.3.0",
     "solaredge-modbus-client2": "file:local_modules/solaredge-modbus-client2",
